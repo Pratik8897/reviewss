@@ -41,6 +41,4 @@ app.get('/api/product-reviews', async (req, res) => {
 });
 
 
-app.listen(port, () => {
-    console.log(`Server listening on http://localhost:${port}`);
-});
+module.exports = app;
