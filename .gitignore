@@ -1,0 +1,31 @@
+# Ignore all files with a .log extension
+*.log
+
+# Ignore a specific file named 'config.ini'
+config.ini
+
+# Ignore all files in a directory named 'temp_files/'
+temp_files/
+
+# Ignore the entire 'node_modules' directory often used in JavaScript projects
+node_modules/
+
+# Ignore a specific file within a subfolder
+src/data/secret_keys.txt
+
+# Ignore all files with a .tmp extension, but not a specific important.tmp file
+*.tmp
+!important.tmp
+
+# Ignore all files in the 'build/' directory, but not the 'build/README.md' file
+build/
+!build/README.md
+
+# Ignore operating system specific files
+.DS_Store # macOS
+Thumbs.db # Windows
+
+# Ignore IDE-specific files and directories
+.idea/ # IntelliJ IDEA
+.vscode/ # VS Code
+*.iml # IntelliJ IDEA module files
