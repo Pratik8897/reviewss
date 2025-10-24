@@ -36,15 +36,18 @@ function setCache(key, data) {
 // ====== UNIFIED ENDPOINT (single + bulk) ======
 app.all("/api/product-reviews", async (req, res) => {
   try {
+    // 1️⃣ Handle both single & bulk
     const singleId = req.query.shopifyId;
     const bulkIds = req.query.ids ? req.query.ids.split(",") : [];
     const shopifyIds = singleId ? [singleId] : bulkIds;
 
-    if (!shopifyIds.length) {
-      return res.status(400).json({ error: "Missing ?shopifyId= or ?ids=" });
+    if (!Array.isArray(shopifyIds) || shopifyIds.length === 0) {
+      return res
+        .status(400)
+        .json({ error: "Missing ?shopifyId= or ?ids= query parameter" });
     }
 
-    // check cache first
+    // 2️⃣ Cache setup
     const cacheKey = shopifyIds.sort().join(",");
     const cached = getCache(cacheKey);
     if (cached) {
@@ -52,50 +55,66 @@ app.all("/api/product-reviews", async (req, res) => {
       return res.json(cached);
     }
 
+    // 3️⃣ Fetch each product’s reviews in parallel
     const results = [];
+
     await Promise.all(
       shopifyIds.map(async (externalId) => {
         try {
-          // Step 1: Get Judge.me product ID
-          const productRes = await axiosInstance.get(
+          console.log("Fetching reviews for:", externalId);
+
+          // Step 1: Get Judge.me Product ID
+          const productResponse = await axiosInstance.get(
             `https://judge.me/api/v1/products?shop_domain=${SHOP_DOMAIN}&api_token=${API_TOKEN}&external_id=${externalId}`
           );
-          const judgeMeProductId = productRes.data?.product?.id;
+
+          const judgeMeProductId = productResponse.data?.product?.id;
+
           if (!judgeMeProductId) {
+            console.warn(`No Judge.me product found for ${externalId}`);
             results.push({ shopifyId: externalId, reviews: [] });
             return;
           }
 
-          // Step 2: Get reviews
-          const reviewsRes = await axiosInstance.get(
+          // Step 2: Get Reviews
+          const reviewsResponse = await axiosInstance.get(
             `https://judge.me/api/v1/reviews?shop_domain=${SHOP_DOMAIN}&api_token=${API_TOKEN}&product_id=${judgeMeProductId}&per_page=20&page=1`
           );
 
           results.push({
             shopifyId: externalId,
             judgeMeProductId,
-            reviews: reviewsRes.data.reviews || [],
+            reviews: reviewsResponse.data.reviews || [],
           });
         } catch (err) {
-          results.push({ shopifyId: externalId, error: err.message });
+          console.error(`Error fetching for ${externalId}:`, err.message);
+          results.push({
+            shopifyId: externalId,
+            error: err.message,
+          });
         }
       })
     );
 
-    // format single vs bulk
+    // 4️⃣ Decide response type
     const response =
       shopifyIds.length === 1 ? results[0] : { count: results.length, results };
 
-    // store in cache
+    // 5️⃣ Cache for 10 minutes
     setCache(cacheKey, response);
-
     console.log("✅ Cached:", cacheKey);
+
+    // 6️⃣ Send JSON response
     res.json(response);
   } catch (error) {
     console.error("Unified fetch error:", error.message);
-    res.status(500).json({ error: "Failed to fetch product reviews" });
+    res.status(500).json({
+      error: "Failed to fetch product reviews",
+      details: error.message,
+    });
   }
 });
+
 
 // Health route
 app.get("/", (req, res) => {
