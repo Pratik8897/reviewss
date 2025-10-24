@@ -70,6 +70,10 @@ app.get('/api/product-reviews', async (req, res) => {
   }
 });
 
+app.get("/", (req, res) => {
+  res.json({ message: "🚀 Express API running successfully on Vercel!" });
+});
+
 /* ============================================================
    ✅ BULK PRODUCT REVIEWS
    Supports:
