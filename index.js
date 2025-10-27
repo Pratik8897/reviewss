@@ -6,7 +6,10 @@ const cors = require("cors");
 
 const app = express();
 
-app.use(cors());
+// app.use(cors());
+app.use(cors({
+  origin: ['https://asmitaorganicfarm.myshopify.com', 'https://asmitaorganicfarm.com'],
+}));
 app.use(express.json());
 
 // ✅ Environment variables
